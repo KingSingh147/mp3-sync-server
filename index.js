@@ -26,22 +26,75 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    const { action, room, payload } = data;
+    const { action, room, target, payload } = data;
 
-    if (action === "join") {
+    // ✅ Register your own room
+    if (action === "register") {
       if (!room) return;
       ws.room = room;
       rooms[room] = rooms[room] || [];
       rooms[room].push(ws);
-      console.log(`👥 Client joined room: ${room}`);
+      console.log(`👥 Client registered room: ${room}`);
     }
 
-    if (action === "broadcast" && ws.room) {
-      rooms[ws.room].forEach((client) => {
-        if (client !== ws && client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(payload));
+    // ✅ Handle connection request (invitation)
+    if (action === "request_connect") {
+      const targetRoom = target;
+      if (!targetRoom || !rooms[targetRoom]) {
+        console.log(`❌ Target room not found: ${targetRoom}`);
+        return;
+      }
+      rooms[targetRoom].forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            action: "invite",
+            from: ws.room
+          }));
         }
       });
+      console.log(`📨 Sent invite to room: ${targetRoom} from ${ws.room}`);
+    }
+
+    // ✅ Handle accept connection
+    if (action === "accept") {
+      const targetRoom = room;
+      if (!targetRoom || !rooms[targetRoom]) return;
+      rooms[targetRoom].forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            action: "accept"
+          }));
+        }
+      });
+      console.log(`✅ Connection accepted for room: ${targetRoom}`);
+    }
+
+    // ✅ Handle reject connection
+    if (action === "reject") {
+      const targetRoom = room;
+      if (!targetRoom || !rooms[targetRoom]) return;
+      rooms[targetRoom].forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            action: "reject"
+          }));
+        }
+      });
+      console.log(`❌ Connection rejected for room: ${targetRoom}`);
+    }
+
+    // ✅ Handle play broadcasts (sync state)
+    if (action === "play") {
+      if (ws.room && rooms[ws.room]) {
+        rooms[ws.room].forEach((client) => {
+          if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              action: "play",
+              payload
+            }));
+          }
+        });
+      }
     }
   });
 
