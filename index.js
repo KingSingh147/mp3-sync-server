@@ -63,9 +63,8 @@ wss.on("connection", (ws) => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
                         action: "accept",
-                        room: ws.room  // send back the room code of the accepting user
+                        room: ws.room
                     }));
-
                 }
             });
             console.log(`✅ Connection accepted for room: ${targetRoom}`);
@@ -84,6 +83,26 @@ wss.on("connection", (ws) => {
             });
             console.log(`❌ Connection rejected for room: ${targetRoom}`);
         }
+
+        // ✅ Handle play broadcasts (sync state)
+        if (action === "play") {
+            if (ws.room && rooms[ws.room]) {
+                rooms[ws.room].forEach((client) => {
+                    if (client !== ws && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            action: "play",
+                            payload
+                        }));
+                    }
+                });
+            }
+        }
+    });
+
+    ws.on("close", () => {
+        console.log("❌ Client disconnected");
+
+        // Inform other clients in the same room
         if (ws.room && rooms[ws.room]) {
             rooms[ws.room].forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -93,35 +112,13 @@ wss.on("connection", (ws) => {
                 }
             });
 
-            // Remove the client
+            // Remove the client from the room
             rooms[ws.room] = rooms[ws.room].filter((client) => client !== ws);
             if (rooms[ws.room].length === 0) {
                 delete rooms[ws.room];
             }
         }
     });
-
-    // ✅ Handle play broadcasts (sync state)
-    if (action === "play") {
-        if (ws.room && rooms[ws.room]) {
-            rooms[ws.room].forEach((client) => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({
-                        action: "play",
-                        payload
-                    }));
-                }
-            });
-        }
-    }
-});
-
-ws.on("close", () => {
-    console.log("❌ Client disconnected");
-
-    // Inform other clients in the same room
-
-
 });
 
 server.listen(PORT, () => {
