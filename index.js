@@ -99,26 +99,29 @@ wss.on("connection", (ws) => {
         }
     });
 
-    ws.on("close", () => {
-        console.log("❌ Client disconnected");
+ws.on("close", () => {
+  console.log(`❌ Client disconnected from room: ${ws.room}`);
 
-        // Inform other clients in the same room
-        if (ws.room && rooms[ws.room]) {
-            rooms[ws.room].forEach((client) => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({
-                        action: "peer_disconnected"
-                    }));
-                }
-            });
+  if (ws.room && rooms[ws.room]) {
+    console.log(`➡️ Notifying ${rooms[ws.room].length - 1} other clients`);
 
-            // Remove the client from the room
-            rooms[ws.room] = rooms[ws.room].filter((client) => client !== ws);
-            if (rooms[ws.room].length === 0) {
-                delete rooms[ws.room];
-            }
-        }
+    rooms[ws.room].forEach((client) => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        console.log(`➡️ Sending peer_disconnected to client in room: ${ws.room}`);
+        client.send(JSON.stringify({
+          action: "peer_disconnected"
+        }));
+      }
     });
+
+    rooms[ws.room] = rooms[ws.room].filter((client) => client !== ws);
+    if (rooms[ws.room].length === 0) {
+      delete rooms[ws.room];
+    }
+  }
+});
+
+
 });
 
 server.listen(PORT, () => {
