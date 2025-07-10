@@ -3,7 +3,6 @@ const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
 
-// Create HTTP server (required by Railway)
 const server = http.createServer((req, res) => {
   res.writeHead(200);
   res.end("WebSocket server is running.");
@@ -57,7 +56,6 @@ wss.on("connection", (ws) => {
   });
 });
 
-// Listen using HTTP server
 server.listen(PORT, () => {
   console.log(`✅ Server listening on port ${PORT}`);
 });
