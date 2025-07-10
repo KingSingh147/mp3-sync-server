@@ -84,42 +84,43 @@ wss.on("connection", (ws) => {
             });
             console.log(`❌ Connection rejected for room: ${targetRoom}`);
         }
+        if (ws.room && rooms[ws.room]) {
+            rooms[ws.room].forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({
+                        action: "peer_disconnected"
+                    }));
+                }
+            });
 
-        // ✅ Handle play broadcasts (sync state)
-        if (action === "play") {
-            if (ws.room && rooms[ws.room]) {
-                rooms[ws.room].forEach((client) => {
-                    if (client !== ws && client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({
-                            action: "play",
-                            payload
-                        }));
-                    }
-                });
+            // Remove the client
+            rooms[ws.room] = rooms[ws.room].filter((client) => client !== ws);
+            if (rooms[ws.room].length === 0) {
+                delete rooms[ws.room];
             }
         }
     });
 
-    ws.on("close", () => {
-  console.log("❌ Client disconnected");
-
-  // Inform other clients in the same room
-  if (ws.room && rooms[ws.room]) {
-    rooms[ws.room].forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({
-          action: "peer_disconnected"
-        }));
-      }
-    });
-
-    // Remove the client
-    rooms[ws.room] = rooms[ws.room].filter((client) => client !== ws);
-    if (rooms[ws.room].length === 0) {
-      delete rooms[ws.room];
+    // ✅ Handle play broadcasts (sync state)
+    if (action === "play") {
+        if (ws.room && rooms[ws.room]) {
+            rooms[ws.room].forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({
+                        action: "play",
+                        payload
+                    }));
+                }
+            });
+        }
     }
-  }
 });
+
+ws.on("close", () => {
+    console.log("❌ Client disconnected");
+
+    // Inform other clients in the same room
+
 
 });
 
