@@ -101,14 +101,26 @@ wss.on("connection", (ws) => {
     });
 
     ws.on("close", () => {
-        console.log("❌ Client disconnected");
-        if (ws.room && rooms[ws.room]) {
-            rooms[ws.room] = rooms[ws.room].filter((client) => client !== ws);
-            if (rooms[ws.room].length === 0) {
-                delete rooms[ws.room];
-            }
-        }
+  console.log("❌ Client disconnected");
+
+  // Inform other clients in the same room
+  if (ws.room && rooms[ws.room]) {
+    rooms[ws.room].forEach((client) => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({
+          action: "peer_disconnected"
+        }));
+      }
     });
+
+    // Remove the client
+    rooms[ws.room] = rooms[ws.room].filter((client) => client !== ws);
+    if (rooms[ws.room].length === 0) {
+      delete rooms[ws.room];
+    }
+  }
+});
+
 });
 
 server.listen(PORT, () => {
