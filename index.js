@@ -1,11 +1,18 @@
+const http = require("http");
 const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
-const wss = new WebSocket.Server({ port: PORT });
 
-console.log(`✅ WebSocket server running on port ${PORT}`);
+// Create HTTP server (required by Railway)
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("WebSocket server is running.");
+});
 
-// Keep track of all rooms and clients
+const wss = new WebSocket.Server({ server });
+
+console.log(`✅ WebSocket server starting...`);
+
 const rooms = {};
 
 wss.on("connection", (ws) => {
@@ -31,7 +38,6 @@ wss.on("connection", (ws) => {
     }
 
     if (action === "broadcast" && ws.room) {
-      // Broadcast to others in the same room
       rooms[ws.room].forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(payload));
@@ -49,4 +55,9 @@ wss.on("connection", (ws) => {
       }
     }
   });
+});
+
+// Listen using HTTP server
+server.listen(PORT, () => {
+  console.log(`✅ Server listening on port ${PORT}`);
 });
