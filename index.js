@@ -57,18 +57,27 @@ wss.on("connection", (ws) => {
 
         // ✅ Handle accept connection
         if (action === "accept") {
-            const targetRoom = room;
-            if (!targetRoom || !rooms[targetRoom]) return;
-            rooms[targetRoom].forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({
-                        action: "accept",
-                        room: ws.room
-                    }));
-                }
-            });
-            console.log(`✅ Connection accepted for room: ${targetRoom}`);
-        }
+  const targetRoom = room;
+  if (!targetRoom || !rooms[targetRoom]) return;
+
+  rooms[targetRoom].forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({
+        action: "accept",
+        room: ws.room
+      }));
+    }
+  });
+
+  console.log(`✅ Connection accepted for room: ${targetRoom}`);
+
+  // 🔥 Add this: put THIS ws (the accepter) into the target room
+  ws.room = targetRoom;
+  if (!rooms[targetRoom].includes(ws)) {
+    rooms[targetRoom].push(ws);
+  }
+}
+
 
         // ✅ Handle reject connection
         if (action === "reject") {
